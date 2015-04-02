@@ -1,0 +1,31 @@
+#!/bin/bash
+
+while getopts 'imn' flag; do
+  case "${flag}" in
+    h) hfl='true' ;;
+    m) mfl='true' ;;
+    v) vfl='true' ;;
+    *) error "Invalid option ${flag}" ;;
+  esac
+done
+
+
+if [[ $hfl != true && $mfl != true && $vfl != true ]]; then
+
+else
+	if [[ $hfl == true ]] then
+		#print a usage statement and exit
+	else
+		if [[ $mfl == true ]]; then
+			#method = 'dd' or 'rsync'
+		else
+			#method = 'dd'
+		fi
+		
+		if [[ $vfl == true ]]; then
+			#use the given volume
+		else
+			#create a new volume
+		fi
+	fi
+fi
