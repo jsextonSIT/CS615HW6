@@ -1,31 +1,24 @@
 #!/bin/bash
+method='dd'
 
-while getopts 'imn' flag; do
+usage() {
+	cat <<EOF
+$0 [-hmv] 
+-h Print a usage statement and exit.
+-m method Use the given method to perform the backup. Valid method are 'dd' and 'rsync'; default is 'dd'.
+-v volume-id  Use the given volume instead of creating a new one.
+EOF
+}
+
+while getopts h:m:v flag; do
   case "${flag}" in
-    h) hfl='true' ;;
-    m) mfl='true' ;;
-    v) vfl='true' ;;
-    *) error "Invalid option ${flag}" ;;
+    h) usage ;; 
+    m) method=$OPTARG ;;
+    v) volumeid=$OPTARG;;
+    *) usage
+	   exit 1
+	   ;;
   esac
 done
 
-
-if [[ $hfl != true && $mfl != true && $vfl != true ]]; then
-
-else
-	if [[ $hfl == true ]] then
-		#print a usage statement and exit
-	else
-		if [[ $mfl == true ]]; then
-			#method = 'dd' or 'rsync'
-		else
-			#method = 'dd'
-		fi
-		
-		if [[ $vfl == true ]]; then
-			#use the given volume
-		else
-			#create a new volume
-		fi
-	fi
-fi
+echo $method
