@@ -1,24 +1,74 @@
 #!/bin/bash
+
+## GLOBALS/FLAGS ##
+f_ssh=''
+f_aws=''
+f_zone=''
+
 method='dd'
+verbose='false'
+directory=''
 
 usage() {
 	cat <<EOF
-$0 [-hmv] 
 -h Print a usage statement and exit.
 -m method Use the given method to perform the backup. Valid method are 'dd' and 'rsync'; default is 'dd'.
 -v volume-id  Use the given volume instead of creating a new one.
 EOF
 }
 
-while getopts h:m:v flag; do
+while getopts h:m:v: flag; do
   case "${flag}" in
     h) usage ;; 
     m) method=$OPTARG ;;
     v) volumeid=$OPTARG;;
-    *) usage
+    *) $0 [-hmv] 
+	   usage
 	   exit 1
 	   ;;
   esac
 done
+shift $(($OPTIND-1))
+directory=$1
 
-echo $method
+if [ ! -e "$directory" ] 
+	then 
+		echo " $directory : No such file or directory"
+		exit 1
+fi
+
+if [ ! -z "$EC2_BACKUP_VERBOSE" ]
+	then 
+		verbose=$EC2_BACKUP_FLAGS_VERBOSE
+fi
+
+if [ -z "$EC2_BACKUP_FLAGS_SSH" ] 
+	then 
+		echo environment variable should be set: '$EC2_BACKUP_FLAGS_SSH' 
+		exit 1
+	else
+		sshpath=`expr "$EC2_BACKUP_FLAGS_SSH" : "^-i \(.*\)$"`
+		if [ ! -e "$sshpath" ]
+			then 
+				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)'
+				exit 1
+		else
+			f_ssh=$EC2_BACKUP_FLAGS_SSH
+		fi	
+fi	
+
+if [ -z "$EC2_BACKUP_FLAGS_AWS" ] 
+	then 
+		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
+		exit 1
+else
+	f_aws=$EC2_BACKUP_FLAGS_AWS
+fi
+
+if [ $verbose = "true" ]
+then
+	echo 'EC2_BACKUP_FLAGS_SSH  = '$flags_ssh
+	echo 'EC2_BACKUP_FLAGS_ZONE = '$flags_zone
+	echo 'EC2_BACKUP_FLAGS_AWS  = '$flags_aws
+fi
+
