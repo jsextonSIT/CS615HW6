@@ -7,7 +7,9 @@ f_zone=''
 
 method='dd'
 verbose='false'
+volumeid=''
 directory=''
+initial_volume_size=1.5
 
 usage() {
 	cat <<EOF
@@ -71,4 +73,28 @@ then
 	echo 'EC2_BACKUP_FLAGS_ZONE = '$flags_zone
 	echo 'EC2_BACKUP_FLAGS_AWS  = '$flags_aws
 fi
+
+#check that method and volumeid are of correct format
+#if not exit with error
+
+#calculate space of the file(s) to transfer
+#store in variable called src_size
+
+#if volumeid is not empty
+#	run describe-volumes and store output
+#	check that "State" is "available" if not exit with error volume is in use, can't mount it
+#	read stored describe-volumes output and see in "Size" is large enough (value stored in GB)
+#	if not exit error volume too small for files to be transferred to
+#	ssh to instance
+#	check free space on volume if space is too small exit with error volume is in use, can't mount it
+#	logout of instance
+
+#if volumeid is empty
+#	create a volume of initial_volume_size * src_size
+
+
+#transfer files with tar to instance
+#ssh to instance
+#copy files using correct mode
+
 
