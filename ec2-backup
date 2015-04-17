@@ -38,7 +38,8 @@ if [ ! -e "$directory" ]
 		echo " $directory : No such file or directory"
 		exit 1
 fi
-
+src_size=$(stat -c%s "$directory") ## IN BYTES
+echo $src_size
 if [ ! -z "$EC2_BACKUP_VERBOSE" ]
 	then 
 		verbose=$EC2_BACKUP_FLAGS_VERBOSE
@@ -63,8 +64,13 @@ if [ -z "$EC2_BACKUP_FLAGS_AWS" ]
 	then 
 		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
 		exit 1
-else
-	f_aws=$EC2_BACKUP_FLAGS_AWS
+	else
+		f_aws=$EC2_BACKUP_FLAGS_AWS
+
+		if [ "`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"`" != ""  ]
+			then
+				flags_zone=`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"` 2>/dev/null
+		fi
 fi
 
 if [ $verbose = "true" ]
@@ -74,11 +80,11 @@ then
 	echo 'EC2_BACKUP_FLAGS_AWS  = '$flags_aws
 fi
 
-#check that method and volumeid are of correct format
-#if not exit with error
-
-#calculate space of the file(s) to transfer
-#store in variable called src_size
+if [ ! $method -eq "dd" || ! $method -eq "rsync" ] 
+	then 
+		echo "method must be dd or rsync"
+		exit 1
+fi 
 
 #if volumeid is not empty
 #	run describe-volumes and store output
