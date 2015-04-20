@@ -10,6 +10,7 @@ verbose='false'
 volumeid=''
 directory=''
 initial_volume_size=2.5
+volume_availability_zone=''
 
 usage() {
 	cat <<EOF
@@ -30,6 +31,7 @@ while getopts h:m:v: flag; do
 	   ;;
   esac
 done
+IFS=$'\n'
 shift $(($OPTIND-1))
 directory=$1
 if [ ! -e "$directory" ] 
@@ -87,6 +89,57 @@ if [ ! $method -eq "dd" || ! $method -eq "rsync" ]
 		exit 1
 fi 
 
+#check if volumeid was specified
+if [ -n $volumeid ] 
+	then
+		echo 'found volume id'
+		#if so then get the information about it
+		describe_volume_output=`aws ec2 describe-volumes --volume-ids $volumeid --output json`
+		
+		echo 'entering loop'
+		for line in $describe_volume_output
+		do
+			#record volume availability zone for future use
+			if [[ $line =~ "AvailabilityZone" ]]
+				then
+					echo 'found availability zone'
+					volume_availability_zone=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+			#check if volume is abailable to be used
+			elif [[ $line =~ "State" ]]
+				then
+					echo 'found state'
+					vol_state=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+					if [ "available" != $vol_state ]
+						then
+							echo 'The volume specified is currently in use. Please unattach the volume and try again.'
+							exit 1
+					fi
+			#check if volume is big enough to transfer the files
+			elif [[ $line =~ "Size" ]]
+				then
+					echo 'found size'
+					volume_size=`echo $line | awk '{print $2}'`
+					if [ $volume_size -lt $size ]
+						then
+							echo 'The volume is not large enough to transfer the specified file/directory.'
+							exit 1
+					fi
+			fi
+		done
+	else
+		echo "didn't find volume id"
+		volume_availability_zone=`aws ec2 describe-availability-zones | awk '{print $4}' | head -1`
+		#volume_size=$size*$initial_volume_size
+		#create_output=`aws ec2 create-volume --availability-zone $volume_availability_zone --size $volume_size --output json`
+		for line in $create_output
+		do
+			echo 'entered loop'
+			if [ -z `echo $line | grep "VolumeId"` ]
+				then
+					volumeid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+			fi
+		done
+fi
 
 #ATTACH
 #SSH 
@@ -95,12 +148,6 @@ fi
 #UNMOUNT
 #UNMOUNT EWS
 
-
-#if volumeid is not empty
-#	run describe-volumes and store output
-#	check that "State" is "available" if not exit with error volume is in use, can't mount it
-#	read stored describe-volumes output and see in "Size" is large enough (value stored in GB)
-#	if not exit error volume too small for files to be transferred to
 #	ssh to instance
 #	check free space on volume if space is too small exit with error volume is in use, can't mount it
 #	logout of instance
