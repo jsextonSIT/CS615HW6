@@ -139,6 +139,7 @@ if [[ $volumeid =~ "vol-" ]]
 fi
 echo $volumeid
 
+run-instances --image-id <value> --availability-zone $volume_availability_zone $local_aws_flag
 #ATTACH
 #SSH 
 #MOUNT
