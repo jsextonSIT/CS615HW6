@@ -127,7 +127,7 @@ if [[ $volumeid =~ "vol-" ]]
 		done
 	else
 		echo "didn't find volume id"
-		volume_availability_zone=`aws ec2 describe-availability-zones | awk '{print $4}' | head -1`
+		volume_availability_zone=`aws ec2 describe-availability-zones --output text | awk '{print $4}' | head -1`
 		volume_size=$(($size * $initial_volume_size))
 		if [ $volume_size -eq 0 ]
 			then
