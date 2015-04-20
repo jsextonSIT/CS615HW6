@@ -9,7 +9,7 @@ method='dd'
 verbose='false'
 volumeid=''
 directory=''
-initial_volume_size=2.5
+initial_volume_size=2
 volume_availability_zone=''
 
 usage() {
@@ -96,7 +96,6 @@ if [ -n $volumeid ]
 		#if so then get the information about it
 		describe_volume_output=`aws ec2 describe-volumes --volume-ids $volumeid --output json`
 		
-		echo 'entering loop'
 		for line in $describe_volume_output
 		do
 			#record volume availability zone for future use
@@ -129,17 +128,21 @@ if [ -n $volumeid ]
 	else
 		echo "didn't find volume id"
 		volume_availability_zone=`aws ec2 describe-availability-zones | awk '{print $4}' | head -1`
-		#volume_size=$size*$initial_volume_size
-		#create_output=`aws ec2 create-volume --availability-zone $volume_availability_zone --size $volume_size --output json`
+		volume_size=$(($size * $initial_volume_size))
+		if [ $volume_size -eq 0 ]
+			then
+				volume_size=1
+		fi
+		create_output=`aws ec2 create-volume --availability-zone $volume_availability_zone --size $volume_size --output json`
 		for line in $create_output
 		do
-			echo 'entered loop'
-			if [ -z `echo $line | grep "VolumeId"` ]
+			if [[ $line =~ "VolumeId" ]]
 				then
 					volumeid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 			fi
 		done
 fi
+echo $volumeid
 
 #ATTACH
 #SSH 
