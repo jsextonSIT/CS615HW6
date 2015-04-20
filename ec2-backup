@@ -170,7 +170,10 @@ if [[ ! $local_aws_flags =~ "--instance-type" ]]
 	then 
 		local_aws_flags="${local_aws_flags} --instance-type t1.micro"
 fi
-[ $verbose=true -a echo "creating instance" ]
+if [ $verbose ]
+	then
+		echo "creating instance"
+fi	
 createoutput=`eval "aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags --output json"`
 
 for line in $createoutput
@@ -180,10 +183,16 @@ do
 			instanceid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 	fi
 done
-[ $verbose=true -a echo "instance $instanceid created" ]
+if [ $verbose ]
+	then
+		echo "instance $instanceid created"
+fi	
 status=""
 sleep 1
-[ $verbose=true -a echo "waiting for instance to change to running state" ]
+if [ $verbose ]
+	then
+		echo "waiting for instance to change to running state"
+fi	
 while [[ ! $status =~ "running" ]]
 	do
 		output=`aws ec2 describe-instances --instance-ids $instanceid --output json`
@@ -213,7 +222,10 @@ while [[ ! $status =~ "running" ]]
 			sleep 4
 		fi
 done
-[ $verbose=true -a echo "instance is now in running state" ]
+if [ $verbose ]
+	then
+		echo "instance is now in running state"
+fi	
 if [ $verbose ]
 	then
 		echo "ip address is $ip"
@@ -228,11 +240,18 @@ if [ $verbose ]
 fi
 
 #ATTACH
-[ $verbose=true -a echo "attaching volume" ]
+if [ $verbose ]
+	then
+		echo "attaching volume"
+fi	
+
 attachoutput=`aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device`
 
 #SSH
-[ $verbose=true -a echo "starting copy" ]
+if [ $verbose ]
+	then
+		echo "starting copy"
+fi	
 ec2_user_name="ubuntu"
 mountdir="/mnt"
 if [ $method == "dd" ]
@@ -254,11 +273,20 @@ if [ $method == "dd" ]
 		#UNMOUNT
 		echo "sudo umount $device" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 fi
-[ $verbose=true -a echo "done copying" ]
+if [ $verbose ]
+	then
+		echo "done copying" 
+fi	
 #UNMOUNT AWS
 dismountoutput=`aws ec2 detach-volume --volume-id $volumeid`
-[ $verbose=true -a echo "done detaching volume" ]
+if [ $verbose ]
+	then
+		echo "done detaching volume"
+fi	
 # terminate instance
 terminateoutput=`aws ec2 terminate-instances --instance-ids $instanceid`
-[ $verbose=true -a echo "done terminating instance" ]
+if [ $verbose ]
+	then
+		echo "done terminating instance"
+fi	
 echo $volumeid
