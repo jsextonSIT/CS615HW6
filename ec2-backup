@@ -9,7 +9,7 @@ method='dd'
 verbose='false'
 volumeid=''
 directory=''
-initial_volume_size=1.5
+initial_volume_size=2.5
 
 usage() {
 	cat <<EOF
@@ -32,14 +32,16 @@ while getopts h:m:v: flag; do
 done
 shift $(($OPTIND-1))
 directory=$1
-
 if [ ! -e "$directory" ] 
 	then 
 		echo " $directory : No such file or directory"
 		exit 1
 fi
-src_size=$(stat -c%s "$directory") ## IN BYTES
-echo $src_size
+dir_size=$(stat -c%s "$directory")
+size=$((($dir_size + $dir_size) / 1024 / 1024 / 1014)) # in GB
+
+echo $size
+
 if [ ! -z "$EC2_BACKUP_VERBOSE" ]
 	then 
 		verbose=$EC2_BACKUP_FLAGS_VERBOSE
@@ -51,10 +53,10 @@ if [ -z "$EC2_BACKUP_FLAGS_SSH" ]
 		exit 1
 	else
 		sshpath=`expr "$EC2_BACKUP_FLAGS_SSH" : "^-i \(.*\)$"`
+		echo $sshpath
 		if [ ! -e "$sshpath" ]
 			then 
-				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)'
-				exit 1
+				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)' exit 1
 		else
 			f_ssh=$EC2_BACKUP_FLAGS_SSH
 		fi	
@@ -66,7 +68,6 @@ if [ -z "$EC2_BACKUP_FLAGS_AWS" ]
 		exit 1
 	else
 		f_aws=$EC2_BACKUP_FLAGS_AWS
-
 		if [ "`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"`" != ""  ]
 			then
 				flags_zone=`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"` 2>/dev/null
@@ -75,9 +76,9 @@ fi
 
 if [ $verbose = "true" ]
 then
-	echo 'EC2_BACKUP_FLAGS_SSH  = '$flags_ssh
-	echo 'EC2_BACKUP_FLAGS_ZONE = '$flags_zone
-	echo 'EC2_BACKUP_FLAGS_AWS  = '$flags_aws
+	echo 'EC2_BACKUP_FLAGS_SSH  = '$f_ssh
+	echo 'EC2_BACKUP_FLAGS_ZONE = '$f_zone
+	echo 'EC2_BACKUP_FLAGS_AWS  = '$f_aws
 fi
 
 if [ ! $method -eq "dd" || ! $method -eq "rsync" ] 
@@ -85,6 +86,15 @@ if [ ! $method -eq "dd" || ! $method -eq "rsync" ]
 		echo "method must be dd or rsync"
 		exit 1
 fi 
+
+
+#ATTACH
+#SSH 
+#MOUNT
+
+#UNMOUNT
+#UNMOUNT EWS
+
 
 #if volumeid is not empty
 #	run describe-volumes and store output
