@@ -43,7 +43,12 @@ fi
 dir_size=$(stat -c%s "$directory")
 size=$((($dir_size + $dir_size) / 1024 / 1024 / 1014)) # in GB
 
-echo $size
+
+if [ $verbose == "true" ]
+	then
+		echo $size
+fi
+
 
 if [ ! -z "$EC2_BACKUP_VERBOSE" ]
 	then 
@@ -56,7 +61,11 @@ if [ -z "$EC2_BACKUP_FLAGS_SSH" ]
 		exit 1
 	else
 		sshpath=`expr "$EC2_BACKUP_FLAGS_SSH" : "^-i \(.*\)$"`
-		echo $sshpath
+		if [ $verbose == "true" ]
+			then
+				echo $sshpath
+		fi
+		
 		if [ ! -e "$sshpath" ]
 			then 
 				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)' exit 1
@@ -257,7 +266,7 @@ mountdir="/mnt"
 if [ $method == "dd" ]
 	then
 		mkdir ec2-backup-files
-		eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$mountdir;"'
+		eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$device;"'
 		#eval tar cvf ec2-backup-files/backup.tar ${directory}
 		#eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ${ec2_user_name}@${ip}:~/ec2-backup-files
 		#echo "sudo dd if=~/ec2-backup-files/backup.tar of=$device; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} 'bash -s'
