@@ -11,8 +11,10 @@ instance_address="ec2-52-6-18-82.compute-1.amazonaws.com"
 ec2_user_name="ubuntu"
 mountdir="/dev/xvdf"
 
-mkdir ec2-backup-files
-eval tar cvf ec2-backup-files/backup.tar ${direc}
-eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ${ec2_user_name}@${instance_address}:~/ec2-backup-files
-echo "sudo dd if=~/ec2-backup-files/backup.tar of=$mountdir; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} 'bash -s'
-rm -fR ec2-backup-files
+#mkdir ec2-backup-files
+#eval tar cvf ${ec2_user_name}@${instance_address}:~/ec2-backup.tar ${direc} --rsh-command='""/usr/bin/ssh ${EC2_BACKUP_FLAGS_SSH}""'
+
+eval tar cvf - ${direc} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} '"sudo dd of=$mountdir;"'
+#eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ${ec2_user_name}@${instance_address}:~/ec2-backup-files
+#echo "sudo dd if=~/ec2-backup.tar of=$mountdir; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} 'bash -s'
+#rm -fR ec2-backup-files
