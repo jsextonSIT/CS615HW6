@@ -84,7 +84,7 @@ fi
 
 local_aws_flags=`echo $EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'`
 
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo 'EC2_BACKUP_FLAGS_SSH  = '$f_ssh
 		echo 'EC2_BACKUP_FLAGS_ZONE = '$f_zone
@@ -100,7 +100,7 @@ fi
 #check if volumeid was specified
 if [[ $volumeid =~ "vol-" ]] 
 	then
-		if [ $verbose ]
+		if [ $verbose == "true" ]
 			then
 				echo 'found volume id'
 		fi
@@ -112,7 +112,7 @@ if [[ $volumeid =~ "vol-" ]]
 			#record volume availability zone for future use
 			if [[ $line =~ "AvailabilityZone" ]]
 				then
-					if [ $verbose ]
+					if [ $verbose == "true" ]
 						then
 							echo 'found availability zone'
 					fi
@@ -120,7 +120,7 @@ if [[ $volumeid =~ "vol-" ]]
 			#check if volume is abailable to be used
 			elif [[ $line =~ "State" ]]
 				then
-					if [ $verbose ]
+					if [ $verbose == "true" ]
 						then
 							echo 'found state'
 					fi					
@@ -133,7 +133,7 @@ if [[ $volumeid =~ "vol-" ]]
 			#check if volume is big enough to transfer the files
 			elif [[ $line =~ "Size" ]]
 				then
-					if [ $verbose ]
+					if [ $verbose == "true" ]
 						then
 							echo 'found size'
 					fi					
@@ -146,7 +146,7 @@ if [[ $volumeid =~ "vol-" ]]
 			fi
 		done
 	else
-		if [ $verbose ]
+		if [ $verbose == "true" ]
 			then
 				echo "didn't find volume id"
 		fi		
@@ -170,7 +170,7 @@ if [[ ! $local_aws_flags =~ "--instance-type" ]]
 	then 
 		local_aws_flags="${local_aws_flags} --instance-type t1.micro"
 fi
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "creating instance"
 fi	
@@ -183,13 +183,13 @@ do
 			instanceid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 	fi
 done
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "instance $instanceid created"
 fi	
 status=""
 sleep 1
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "waiting for instance to change to running state"
 fi	
@@ -203,7 +203,7 @@ while [[ ! $status =~ "running" ]]
 					status=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 			fi
 		done
-		if [ $verbose ]
+		if [ $verbose == "true" ]
 			then
 				echo $status
 		fi		
@@ -222,11 +222,11 @@ while [[ ! $status =~ "running" ]]
 			sleep 4
 		fi
 done
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "instance is now in running state"
 fi	
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "ip address is $ip"
 fi
@@ -234,13 +234,13 @@ fi
 
 sleep 45
 
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "wait for 45 second for the instance to finish starting up"
 fi
 
 #ATTACH
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "attaching volume"
 fi	
@@ -248,7 +248,7 @@ fi
 attachoutput=`aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device`
 
 #SSH
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "starting copy"
 fi	
@@ -273,19 +273,19 @@ if [ $method == "dd" ]
 		#UNMOUNT
 		echo "sudo umount $device" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 fi
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "done copying" 
 fi	
 #UNMOUNT AWS
 dismountoutput=`aws ec2 detach-volume --volume-id $volumeid`
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "done detaching volume"
 fi	
 # terminate instance
 terminateoutput=`aws ec2 terminate-instances --instance-ids $instanceid`
-if [ $verbose ]
+if [ $verbose == "true" ]
 	then
 		echo "done terminating instance"
 fi	
