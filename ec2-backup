@@ -245,7 +245,7 @@ if [ $method == "dd" ]
 		rm -fR ec2-backup-files
 	# rsyc
 	else
-		echo "sudo mkfs.ext3 $device ; sudo mount $device $mountdir" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
+		echo "sudo mount $device $mountdir || (sudo mkfs.ext3 $device; sudo mount $device $mountdir; exit)" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 		direcNew=${directory//'~'/$HOME}
 		echo $direcNew
 		echo "sudo chown ubuntu:ubuntu $mountdir; exit"| eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} "bash -s"
