@@ -69,7 +69,7 @@ if [ -z "$EC2_BACKUP_FLAGS_AWS" ]
 		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
 		exit 1
 fi
-local_aws_flags=$EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'
+local_aws_flags=`echo $EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'`
 
 if [ $verbose = "true" ]
 then
@@ -138,12 +138,14 @@ if [[ $volumeid =~ "vol-" ]]
 		done
 fi
 echo $volumeid
-if [[ ! local_aws_flag =~ "--instance-type" ]]
+if [[ ! $local_aws_flags =~ "--instance-type" ]]
 	then 
-	local_aws_flags+="--instance-type t1.micro"
-fi
-createoutput=`aws ec2 create-instance --image-id ami-a26b56ca --availability-zone $volume_availability_zone $local_aws_flag`
+	local_aws_flags="${local_aws_flags} --instance-type t1.micro"
+	echo $local_aws_flags
 
+fi
+createoutput=`aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags`
+echo "aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags"
 echo $createoutput
 
 #ATTACH
