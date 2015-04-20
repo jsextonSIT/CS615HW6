@@ -156,37 +156,53 @@ for line in $createoutput
 	done
 
 status=""
-
-while [ $status -ne "running" ]
+sleep 1
+while [[ ! $status =~ "running" ]]
 	do
-		output=`aws ec2 describe-instances --instanceids $instanceid --output text`
-		status=`echo $output | tail -1 | awk '{print $3}'`
-		if [ $status -eq "running"]
+		output=`aws ec2 describe-instances --instance-ids $instanceid --output json`
+		for line in $output
+		do
+			if [[ $line =~ '"Name":' ]]
+				then
+					status=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+			fi
+		done
+		echo $status
+		if [[ $status =~ "running" ]]
 			then 
-			ip=`echo $output | tail -4 | head -1 | awk '{print $3}'`
+				for line in $output
+				do
+					if [[ $line =~ "PublicIp" ]]
+						then
+							ip=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+					fi
+				done
 				
 		else 
-			sleep 10
+			sleep 4
 		fi
 done
+echo $ip
 
 #ATTACH
-aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device 
+attachoutput=`aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device`
 
 #SSH 
-if [ $method == "dd"]
-	then 
-		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$mountdir; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} 'bash -s'
-	else # rsyc
+if [ $method == "dd" ]
+	then
+		mkdir ec2-backup-files
+		eval tar cvf ec2-backup-files/backup.tar ${directory}
+		eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ubuntu@${ip}:~/ec2-backup-files
+		echo "done"
+		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$device; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ubuntu@${ip} 'bash -s'
+		rm -fR ec2-backup-files
+	# rsyc
 fi
 
 #UNMOUNT
 
 #UNMOUNT AWS
-aws ec2 detach-volume --volume-id $volumeid
+dismountoutput=`aws ec2 detach-volume --volume-id $volumeid`
 
 # terminate instance
-terminate-instances --instance-ids $instanceid
-
-
-
+terminateoutput=`aws ec2 terminate-instances --instance-ids $instanceid`
