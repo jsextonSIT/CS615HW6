@@ -174,21 +174,19 @@ done
 aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device 
 
 #SSH 
-#MOUNT
+if [ $method == "dd"]
+	then 
+		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$mountdir; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} 'bash -s'
+	else # rsyc
+fi
 
 #UNMOUNT
-#UNMOUNT EWS
 
-#	ssh to instance
-#	check free space on volume if space is too small exit with error volume is in use, can't mount it
-#	logout of instance
+#UNMOUNT AWS
+aws ec2 detach-volume --volume-id $volumeid
 
-#if volumeid is empty
-#	create a volume of initial_volume_size * src_size
+# terminate instance
+terminate-instances --instance-ids $instanceid
 
-
-#transfer files with tar to instance
-#ssh to instance
-#copy files using correct mode
 
 
