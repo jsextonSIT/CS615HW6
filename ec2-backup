@@ -9,7 +9,8 @@ method='dd'
 verbose='false'
 volumeid=''
 directory=''
-initial_volume_size=1.5
+initial_volume_size=2
+volume_availability_zone=''
 
 usage() {
 	cat <<EOF
@@ -30,16 +31,19 @@ while getopts h:m:v: flag; do
 	   ;;
   esac
 done
+IFS=$'\n'
 shift $(($OPTIND-1))
 directory=$1
-
 if [ ! -e "$directory" ] 
 	then 
 		echo " $directory : No such file or directory"
 		exit 1
 fi
-src_size=$(stat -c%s "$directory") ## IN BYTES
-echo $src_size
+dir_size=$(stat -c%s "$directory")
+size=$((($dir_size + $dir_size) / 1024 / 1024 / 1014)) # in GB
+
+echo $size
+
 if [ ! -z "$EC2_BACKUP_VERBOSE" ]
 	then 
 		verbose=$EC2_BACKUP_FLAGS_VERBOSE
@@ -51,10 +55,10 @@ if [ -z "$EC2_BACKUP_FLAGS_SSH" ]
 		exit 1
 	else
 		sshpath=`expr "$EC2_BACKUP_FLAGS_SSH" : "^-i \(.*\)$"`
+		echo $sshpath
 		if [ ! -e "$sshpath" ]
 			then 
-				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)'
-				exit 1
+				echo '$EC2_BACKUP_FLAGS_SSH does not exist (Check the path)' exit 1
 		else
 			f_ssh=$EC2_BACKUP_FLAGS_SSH
 		fi	
@@ -64,33 +68,91 @@ if [ -z "$EC2_BACKUP_FLAGS_AWS" ]
 	then 
 		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
 		exit 1
-	else
-		f_aws=$EC2_BACKUP_FLAGS_AWS
-
-		if [ "`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"`" != ""  ]
-			then
-				flags_zone=`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"` 2>/dev/null
-		fi
 fi
+local_aws_flags=$EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'
 
 if [ $verbose = "true" ]
 then
-	echo 'EC2_BACKUP_FLAGS_SSH  = '$flags_ssh
-	echo 'EC2_BACKUP_FLAGS_ZONE = '$flags_zone
-	echo 'EC2_BACKUP_FLAGS_AWS  = '$flags_aws
+	echo 'EC2_BACKUP_FLAGS_SSH  = '$f_ssh
+	echo 'EC2_BACKUP_FLAGS_ZONE = '$f_zone
+	echo 'EC2_BACKUP_FLAGS_AWS  = '$f_aws
 fi
 
-if [ ! $method -eq "dd" || ! $method -eq "rsync" ] 
+if [ $method == "dd" -a $method == "rsync" ]
 	then 
 		echo "method must be dd or rsync"
 		exit 1
 fi 
 
-#if volumeid is not empty
-#	run describe-volumes and store output
-#	check that "State" is "available" if not exit with error volume is in use, can't mount it
-#	read stored describe-volumes output and see in "Size" is large enough (value stored in GB)
-#	if not exit error volume too small for files to be transferred to
+#check if volumeid was specified
+if [[ $volumeid =~ "vol-" ]] 
+	then
+		echo 'found volume id'
+		#if so then get the information about it
+		describe_volume_output=`aws ec2 describe-volumes --volume-ids $volumeid --output json`
+		
+		for line in $describe_volume_output
+		do
+			#record volume availability zone for future use
+			if [[ $line =~ "AvailabilityZone" ]]
+				then
+					echo 'found availability zone'
+					volume_availability_zone=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+			#check if volume is abailable to be used
+			elif [[ $line =~ "State" ]]
+				then
+					echo 'found state'
+					vol_state=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+					if [ "available" != $vol_state ]
+						then
+							echo 'The volume specified is currently in use. Please unattach the volume and try again.'
+							exit 1
+					fi
+			#check if volume is big enough to transfer the files
+			elif [[ $line =~ "Size" ]]
+				then
+					echo 'found size'
+					volume_size=`echo $line | awk '{print $2}'`
+					if [ $volume_size -lt $size ]
+						then
+							echo 'The volume is not large enough to transfer the specified file/directory.'
+							exit 1
+					fi
+			fi
+		done
+	else
+		echo "didn't find volume id"
+		volume_availability_zone=`aws ec2 describe-availability-zones --output text | awk '{print $4}' | head -1`
+		volume_size=$(($size * $initial_volume_size))
+		if [ $volume_size -eq 0 ]
+			then
+				volume_size=1
+		fi
+		create_output=`aws ec2 create-volume --availability-zone $volume_availability_zone --size $volume_size --output json`
+		for line in $create_output
+		do
+			if [[ $line =~ "VolumeId" ]]
+				then
+					volumeid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
+			fi
+		done
+fi
+echo $volumeid
+if [[ ! local_aws_flag =~ "--instance-type" ]]
+	then 
+	local_aws_flags+="--instance-type t1.micro"
+fi
+createoutput=`aws ec2 create-instance --image-id ami-a26b56ca --availability-zone $volume_availability_zone $local_aws_flag`
+
+echo $createoutput
+
+#ATTACH
+#SSH 
+#MOUNT
+
+#UNMOUNT
+#UNMOUNT EWS
+
 #	ssh to instance
 #	check free space on volume if space is too small exit with error volume is in use, can't mount it
 #	logout of instance
