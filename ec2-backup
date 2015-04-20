@@ -68,13 +68,8 @@ if [ -z "$EC2_BACKUP_FLAGS_AWS" ]
 	then 
 		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
 		exit 1
-	else
-		f_aws=$EC2_BACKUP_FLAGS_AWS
-		if [ "`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"`" != ""  ]
-			then
-				flags_zone=`expr "$EC2_BACKUP_FLAGS_AWS" : "^.*\(\(-z\|--availability-zone\) [^ ]*\) \?.*$"` 2>/dev/null
-		fi
 fi
+local_aws_flags=$EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'
 
 if [ $verbose = "true" ]
 then
