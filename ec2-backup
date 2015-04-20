@@ -270,7 +270,7 @@ if [ $method == "dd" ]
 			then
 				eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$device;"'
 			else
-				eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$device;"' > dev/null
+				eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$device;"' > /dev/null
 		fi			
 		eval tar cvf - ${directory} | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} '"sudo dd of=$device;"'
 		#eval tar cvf ec2-backup-files/backup.tar ${directory}
@@ -283,7 +283,7 @@ if [ $method == "dd" ]
 			then
 				echo "sudo mount $device $mountdir || (sudo mkfs.ext3 $device; sudo mount $device $mountdir; exit)" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 			else
-				echo "sudo mount $device $mountdir || (sudo mkfs.ext3 $device; sudo mount $device $mountdir; exit)" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s' > dev/null
+				echo "sudo mount $device $mountdir || (sudo mkfs.ext3 $device; sudo mount $device $mountdir; exit)" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s' > /dev/null
 		fi		
 		
 		direcNew=${directory//'~'/$HOME}
@@ -297,7 +297,7 @@ if [ $method == "dd" ]
 			then
 				rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${ip}):$(eval echo ${mountdir})
 			else
-				rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${ip}):$(eval echo ${mountdir}) > dev/null
+				rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${ip}):$(eval echo ${mountdir}) > /dev/null
 		fi			
 		
 
@@ -306,7 +306,7 @@ if [ $method == "dd" ]
 			then
 				echo "sudo umount $device" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 			else
-				echo "sudo umount $device" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s' > dev/null
+				echo "sudo umount $device" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s' > /dev/null
 		fi			
 		
 fi
