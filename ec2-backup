@@ -83,7 +83,7 @@ then
 	echo 'EC2_BACKUP_FLAGS_AWS  = '$f_aws
 fi
 
-if [ $method -ne "dd" && $method -ne "rsync" ]
+if [ $method -ne "dd" -a $method -ne "rsync" ]
 	then 
 		echo "method must be dd or rsync"
 		exit 1
