@@ -1,0 +1,17 @@
+#!/bin/bash
+my_instance_id="i-acd58750"
+my_volume_id="vol-9c7c2160"
+
+EC2_BACKUP_FLAGS_SSH="-i $HOME/Work/cs615/.ec2/id_rsa-ubuntu-keypair"
+
+direc="~/Work/cs615/backmeup/"
+
+instance_address="ec2-52-6-18-82.compute-1.amazonaws.com"
+
+ec2_user_name="ubuntu"
+mountdir="/mnt"
+
+direcNew=${direc//'~'/$HOME}
+echo $direcNew
+echo "sudo chown ubuntu:ubuntu $mountdir; exit"| eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} "bash -s"
+rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${instance_address}):$(eval echo ${mountdir})
