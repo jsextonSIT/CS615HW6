@@ -68,8 +68,20 @@ fi
 if [ -z "$EC2_BACKUP_FLAGS_AWS" ] 
 	then 
 		echo environment variable should be set: '$EC2_BACKUP_FLAGS_AWS' 
-		exit 1
+	exit 1
+	else
+		if [[ ! $EC2_BACKUP_FLAGS_AWS =~ "--key-name" ]]
+			then
+				echo enviroment variable FLAGS_AWS must contain a --key-name
+				exit 1
+		fi
+
+		if  [[ ! $EC2_BACKUP_FLAGS_AWS =~ "--security-groups" ]]
+			then
+				echo no security-group specified procceeding with default security group. Assuming default allows inbound connections.
+		fi
 fi
+
 local_aws_flags=`echo $EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'`
 
 if [ $verbose = "true" ]
@@ -197,9 +209,15 @@ if [ $method == "dd" ]
 		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$device; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ubuntu@${ip} 'bash -s'
 		rm -fR ec2-backup-files
 	# rsyc
-fi
+	else
+		ssh ${EC2_BACKUP_FLAGS} ubuntu@{ip} mkfs.ext3 $device ; mount $device /mnt
 
-#UNMOUNT
+
+
+		#UNMOUNT
+		ssh $f_ssh ubuntu@${ip} sudo umount $device
+
+fi
 
 #UNMOUNT AWS
 dismountoutput=`aws ec2 detach-volume --volume-id $volumeid`
