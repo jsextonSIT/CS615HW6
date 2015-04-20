@@ -1,0 +1,18 @@
+#!/bin/bash
+my_instance_id="i-acd58750"
+my_volume_id="vol-9c7c2160"
+
+EC2_BACKUP_FLAGS_SSH="-i ~/Work/cs615/.ec2/id_rsa-ubuntu-keypair"
+
+direc="~/Work/cs615/backmeup/"
+
+instance_address="ec2-52-6-18-82.compute-1.amazonaws.com"
+
+ec2_user_name="ubuntu"
+mountdir="/dev/xvdf"
+
+mkdir ec2-backup-files
+eval tar cvf ec2-backup-files/backup.tar ${direc}
+eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ${ec2_user_name}@${instance_address}:~/ec2-backup-files
+echo "sudo dd if=~/ec2-backup-files/backup.tar of=$mountdir; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${instance_address} 'bash -s'
+rm -fR ec2-backup-files
