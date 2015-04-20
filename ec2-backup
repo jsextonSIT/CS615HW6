@@ -199,23 +199,29 @@ echo $ip
 #ATTACH
 attachoutput=`aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device`
 
-#SSH 
+#SSH
+ec2_user_name="ubuntu"
+mountdir="/mnt"
 if [ $method == "dd" ]
 	then
 		mkdir ec2-backup-files
 		eval tar cvf ec2-backup-files/backup.tar ${directory}
-		eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ubuntu@${ip}:~/ec2-backup-files
+		eval scp ${EC2_BACKUP_FLAGS_SSH} -r ec2-backup-files ${ec2_user_name}@${ip}:~/ec2-backup-files
 		echo "done"
-		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$device; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ubuntu@${ip} 'bash -s'
+		echo "sudo dd if=~/ec2-backup-files/backup.tar of=$device; exit" | eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} 'bash -s'
 		rm -fR ec2-backup-files
 	# rsyc
 	else
-		ssh ${EC2_BACKUP_FLAGS} ubuntu@{ip} mkfs.ext3 $device ; mount $device /mnt
+		ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@{ip} mkfs.ext3 $device ; mount $device $mountdir
 
+		direcNew=${directory//'~'/$HOME}
+		echo $direcNew
+		echo "sudo chown ubuntu:ubuntu $mountdir; exit"| eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} "bash -s"
+		rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${ip}):$(eval echo ${mountdir})
 
 
 		#UNMOUNT
-		ssh $f_ssh ubuntu@${ip} sudo umount $device
+		ssh $f_ssh ${ec2_user_name}@${ip} sudo umount $device
 
 fi
 
