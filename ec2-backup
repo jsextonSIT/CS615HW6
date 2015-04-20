@@ -11,6 +11,7 @@ volumeid=''
 directory=''
 initial_volume_size=2
 volume_availability_zone=''
+device='/dev/xvdf'
 
 usage() {
 	cat <<EOF
@@ -146,40 +147,31 @@ fi
 
 createoutput=`eval "aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags --output json"`
 
-#createoutput=`aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags --output json` 
-
-instance=`$createoutput | grep INSTANCE | cut -f2`
-echo $instance
-
-while :
+for line in $createoutput
 	do
-		status=`aws ec2-describe-instances $instance | grep INSTANCE | cut -f6`
-		if [ "$status" = "running" ]
-				then
-					sleep 10
-					break
-		elif [ "$status" = "pending" ]
-				then
-					[ $verbose = "true" ] && echo Waiting...
-					sleep 10
-		elif [ "$status" = "stopped" ]
-				then
-					# Run the instance
-					$EC2_HOME/bin/ec2-start-instances $instance > /dev/null # save ouput without showing on terminal
-					sleep 30
-		elif [ "$status" = "stopping" ]
-				then
-					[ $verbose = "true" ] && echo Waiting for stopping...
-					sleep 10
-		elif [ "$status" = "terminated" ] || [ "$status" = "shutting-down" ]
-				then
-					echo "Please run again to spawn the instance" 1>&2
-					exit 2
+		if [[ $line =~ "InstanceId" ]] 
+			then 
+			instanceid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 		fi
-done	
+	done
+
+status=""
+
+while [ $status -ne "running" ]
+	do
+		output=`aws ec2 describe-instances --instanceids $instanceid --output text`
+		status=`echo $output | tail -1 | awk '{print $3}'`
+		if [ $status -eq "running"]
+			then 
+			ip=`echo $output | tail -4 | head -1 | awk '{print $3}'`
+				
+		else 
+			sleep 10
+		fi
+done
 
 #ATTACH
-
+aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device 
 
 #SSH 
 #MOUNT
