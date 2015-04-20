@@ -84,11 +84,11 @@ fi
 
 local_aws_flags=`echo $EC2_BACKUP_FLAGS_AWS | sed -r 's#--availability-zone\s[a-zA-Z0-9\-]*##'`
 
-if [ $verbose = "true" ]
-then
-	echo 'EC2_BACKUP_FLAGS_SSH  = '$f_ssh
-	echo 'EC2_BACKUP_FLAGS_ZONE = '$f_zone
-	echo 'EC2_BACKUP_FLAGS_AWS  = '$f_aws
+if [ $verbose ]
+	then
+		echo 'EC2_BACKUP_FLAGS_SSH  = '$f_ssh
+		echo 'EC2_BACKUP_FLAGS_ZONE = '$f_zone
+		echo 'EC2_BACKUP_FLAGS_AWS  = '$f_aws
 fi
 
 if [ $method == "dd" -a $method == "rsync" ]
@@ -100,7 +100,10 @@ fi
 #check if volumeid was specified
 if [[ $volumeid =~ "vol-" ]] 
 	then
-		echo 'found volume id'
+		if [ $verbose ]
+			then
+				echo 'found volume id'
+		fi
 		#if so then get the information about it
 		describe_volume_output=`aws ec2 describe-volumes --volume-ids $volumeid --output json`
 		
@@ -109,12 +112,18 @@ if [[ $volumeid =~ "vol-" ]]
 			#record volume availability zone for future use
 			if [[ $line =~ "AvailabilityZone" ]]
 				then
-					echo 'found availability zone'
+					if [ $verbose ]
+						then
+							echo 'found availability zone'
+					fi
 					volume_availability_zone=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 			#check if volume is abailable to be used
 			elif [[ $line =~ "State" ]]
 				then
-					echo 'found state'
+					if [ $verbose ]
+						then
+							echo 'found state'
+					fi					
 					vol_state=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 					if [ "available" != $vol_state ]
 						then
@@ -124,7 +133,10 @@ if [[ $volumeid =~ "vol-" ]]
 			#check if volume is big enough to transfer the files
 			elif [[ $line =~ "Size" ]]
 				then
-					echo 'found size'
+					if [ $verbose ]
+						then
+							echo 'found size'
+					fi					
 					volume_size=`echo $line | awk '{print $2}'`
 					if [ $volume_size -lt $size ]
 						then
@@ -134,7 +146,10 @@ if [[ $volumeid =~ "vol-" ]]
 			fi
 		done
 	else
-		echo "didn't find volume id"
+		if [ $verbose ]
+			then
+				echo "didn't find volume id"
+		fi		
 		volume_availability_zone=`aws ec2 describe-availability-zones --output text | awk '{print $4}' | head -1`
 		volume_size=$(($size * $initial_volume_size))
 		if [ $volume_size -eq 0 ]
@@ -150,22 +165,21 @@ if [[ $volumeid =~ "vol-" ]]
 			fi
 		done
 fi
-echo $volumeid
+
 if [[ ! $local_aws_flags =~ "--instance-type" ]]
 	then 
-	local_aws_flags="${local_aws_flags} --instance-type t1.micro"
-
+		local_aws_flags="${local_aws_flags} --instance-type t1.micro"
 fi
 
 createoutput=`eval "aws ec2 run-instances --image-id ami-a26b56ca --placement AvailabilityZone=$volume_availability_zone $local_aws_flags --output json"`
 
 for line in $createoutput
-	do
-		if [[ $line =~ "InstanceId" ]] 
-			then 
+do
+	if [[ $line =~ "InstanceId" ]] 
+		then 
 			instanceid=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
-		fi
-	done
+	fi
+done
 
 status=""
 sleep 1
@@ -179,7 +193,10 @@ while [[ ! $status =~ "running" ]]
 					status=`echo $line | awk '{gsub(/"/, "", $2);gsub(/,/, "", $2);print $2}'`
 			fi
 		done
-		[ $verbose=true -a echo $status ]
+		if [ $verbose ]
+			then
+				echo $status
+		fi		
 
 		if [[ $status =~ "running" ]]
 			then 
@@ -196,10 +213,18 @@ while [[ ! $status =~ "running" ]]
 		fi
 done
 
-[ $verbose=true -a echo $ip ]
+if [ $verbose ]
+	then
+		echo $ip
+fi
+
 
 sleep 45
-[ $verbose=true -a echo "wait for 45 second for the instance to finalized"]
+
+if [ $verbose ]
+	then
+		echo "wait for 45 second for the instance to finalized"
+fi
 
 #ATTACH
 attachoutput=`aws ec2 attach-volume --instance-id $instanceid --volume-id $volumeid --device $device`
@@ -232,3 +257,5 @@ dismountoutput=`aws ec2 detach-volume --volume-id $volumeid`
 
 # terminate instance
 terminateoutput=`aws ec2 terminate-instances --instance-ids $instanceid`
+
+echo $volumeid
