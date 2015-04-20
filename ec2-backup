@@ -138,8 +138,14 @@ if [[ $volumeid =~ "vol-" ]]
 		done
 fi
 echo $volumeid
+if [[ ! local_aws_flag =~ "--instance-type" ]]
+	then 
+	local_aws_flags+="--instance-type t1.micro"
+fi
+createoutput=`aws ec2 create-instance --image-id ami-a26b56ca --availability-zone $volume_availability_zone $local_aws_flag`
 
-run-instances --image-id <value> --availability-zone $volume_availability_zone $local_aws_flag
+echo $createoutput
+
 #ATTACH
 #SSH 
 #MOUNT
