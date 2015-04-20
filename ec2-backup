@@ -275,7 +275,11 @@ if [ $method == "dd" ]
 	else
 		echo "sudo mount $device $mountdir || (sudo mkfs.ext3 $device; sudo mount $device $mountdir; exit)" | eval ssh ${EC2_BACKUP_FLAGS} ${ec2_user_name}@${ip} 'bash -s'
 		direcNew=${directory//'~'/$HOME}
-		echo $direcNew
+		if [ $verbose == "true" ]
+			then
+				echo $direcNew
+		fi	
+		
 		echo "sudo chown ubuntu:ubuntu $mountdir; exit"| eval ssh ${EC2_BACKUP_FLAGS_SSH} ${ec2_user_name}@${ip} "bash -s"
 		rsync -e "ssh ${EC2_BACKUP_FLAGS_SSH}" -avRz  $direcNew $(eval echo ${ec2_user_name})@$(eval echo ${ip}):$(eval echo ${mountdir})
 
